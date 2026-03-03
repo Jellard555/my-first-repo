@@ -1,0 +1,5 @@
+list = input("请输入20个数字(用空格隔开)")
+list_str = list.split()
+list_int_str = map(int,list_str)
+sum_input = sum(list_int_str)
+print(f"the sum is:{sum_input}")
