@@ -105,3 +105,18 @@ range_number = range(1,50)
 select_number = random.sample(range_number,6)
 sorted_select_number = sorted(select_number)
 print(f"{sorted_select_number} is your loterry ticket")
+
+# night
+#This is a job interview question. 
+#What is the output of the following code and explain why: 
+def f(x,l=[]): 
+     for i in range(x): 
+          l.append(i*i) 
+     print(l) 
+f(2) 
+f(3,[3,2,1]) 
+f(3)
+
+# ten
+#Write a Python program that takes no input and produces a copy of its own source code as its only 
+#output (this is like a computer virus that can replicate itself).

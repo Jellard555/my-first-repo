@@ -44,8 +44,9 @@ class Teacher(Person):
 
 
 stu = Student1("小红", 17, 88)
-stu.eat()  # 输出：小红正在吃饭 → 小红吃完饭后要写作业，成绩是88
+stu.eat()  
 
 teacher = Teacher("李老师", 35, "数学")
-teacher.eat()   # 继承父类方法，输出：李老师正在吃饭
-teacher.teach() #
+teacher.eat()   
+teacher.teach() 
+
