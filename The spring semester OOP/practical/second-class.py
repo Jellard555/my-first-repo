@@ -60,6 +60,7 @@ class Cylinder(Cricle):
     def __str__(self):
         print(f"The {self.colour} cylinder has area {self.get_area()} and volumn {self.get_volumn()}")
 
+#three(b)
 def test_shapes():
     c1 = Cricle("blue" , 4)
     c1.__str__()
@@ -70,4 +71,32 @@ def test_shapes():
     cy1 = Cylinder("red" , 5)
     cy1.__str__()
 d = test_shapes() 
-
+#three(c) unfinished
+#four 
+class Counter():
+    total_instances = 0
+    total_increment = 0
+    def __init__(self,**kwargs):
+        super().__init__(**kwargs)
+        self.count = 0
+        Counter.total_instances += 1
+    def increment(self,amount = None):
+        if amount is None:
+            self.count += 1
+        else:
+            self.count += amount
+        Counter.total_increment += 1
+    def decrement(self,amount = None):
+        if amount is None:
+            self.count -= 1
+        else:
+            self.count -= amount
+        
+#five
+class Exception():
+    def __init__(self,message):
+        self.message = message
+    def __str__(self):
+        return self.message
+    
+#six

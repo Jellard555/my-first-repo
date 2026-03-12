@@ -120,3 +120,6 @@ f(3)
 # ten
 #Write a Python program that takes no input and produces a copy of its own source code as its only 
 #output (this is like a computer virus that can replicate itself).
+with open("C:\\Users\\Jellard\\Desktop\\python_word\\大一\\The spring semester OOP\\practical\\practise-one.py" , 'r' , encoding = "utf-8") as file:
+     code = file.read()
+     print(code)
