@@ -1,0 +1,5 @@
+1. Write a web crawler to obtain the data that you're interested in. (e.g. from Weibo, Douyin etc.)
+Or use some dataset downloaded from the internet (e.g taxi/ETC data from https://people.cs.rutgers.edu/~dz220/data.html)
+2. Use Pandas or Numpy etc. to analyze the data to get some conclusion or suggestions, e.g. the holiday travel pattern in Guangdong highways; taxi waiting time in Shenzhen at weekends.
+3. Visualize these data to present the patterns. (at least 5 Figures)
+4. Design a GUI/command-line system to demo your data analysis.
