@@ -1,0 +1,82 @@
+# -*- coding: UTF-8 -*-
+# 导入相关库
+import csv
+from bs4 import BeautifulSoup
+import bs4
+from selenium import webdriver
+from selenium.webdriver.common.action_chains import ActionChains  # 鼠标操作
+from selenium.webdriver.common.by import By
+import time
+
+
+# 填充大学列表函数,代码可优化
+def fillUnivList(html, ulist):
+    soup = BeautifulSoup(html, 'html.parser')
+    rows = soup.find_all("tr")
+    for tr in rows:
+        div_rank = tr.find("div",class_="ranking")
+        rank = div_rank.get_text(strip=True) if div_rank else ""
+        name_elem1 = tr.find("span", class_="name-cn")
+        name_cn = name_elem1.get_text(strip=True) if name_elem1 else ""
+        name_elem2 = tr.find("span", class_="name-en")
+        name_en = name_elem2.get_text(strip=True) if name_elem2 else ""
+        type = tr.find("p", class_="tags")
+        t1 = type.get_text(strip=True) if type else ""
+        tds = tr.find_all("td")
+        city = tds[2].get_text(strip=True) if len(tds) >= 5 else ""
+        t2 = tds[3].get_text(strip=True) if len(tds) >= 5 else ""
+        score = tds[4].get_text(strip=True) if len(tds) >= 5 else ""
+        score2 =  tds[5].get_text(strip=True) if len(tds) >= 5 else ""
+        # 添加到列表
+        ulist.append([rank,name_cn,name_en,t1,city,t2,score,score2])
+
+
+# 保存到CSV函数
+def saveToCSV(ulist, filename):
+    headers = ['排名', '中文名', '英文名', '层次','省市','类型','总分','分项分']
+    with open(filename, 'w', newline='', encoding='utf-8-sig') as f:
+        writer = csv.writer(f)
+        writer.writerow(headers)
+        writer.writerows(ulist)
+# 鼠标操作运行函数
+def action_run(driver, actions, info, by=By.ID, time_num=1):
+    while 1:
+        config_facesearch = driver.find_element(by=by, value=info)
+        if config_facesearch.is_displayed():
+            actions.move_to_element(config_facesearch).click().perform()
+            time.sleep(time_num)
+            break
+        else:
+            print("%s is not find, waiting..." % (info))
+            time.sleep(1)
+
+
+# 主函数
+
+if __name__ == "__main__":
+    url = "https://www.shanghairanking.cn/rankings/bcur/2026"
+    start = time.strftime("%H:%M:%S", time.localtime())
+    #driver = webdriver.Firefox() #需要根据浏览器类型修改，浏览器需设置远程操作
+    driver = webdriver.Safari()
+    driver.maximize_window()
+    driver.get(url)
+    time.sleep(2)
+
+    "模拟鼠标操作"
+    actions = ActionChains(driver)
+    ulist = []
+
+    for i in range(20):
+        html = driver.page_source
+        fillUnivList(html, ulist)
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")  # 滚动至底部
+        action_run(driver, actions, info="li[title='下一页']", by=By.CSS_SELECTOR)
+
+    end = time.strftime("%H:%M:%S", time.localtime())
+    print("用时%s - %s" % (start, end))  # 时长统计
+    # 关闭浏览器
+    driver.quit()
+
+    # 保存为CSV文件
+    new_ulist = [row for row in ulist if row[0] and str(row[0]).strip() != ""] #去掉空值行
+    saveToCSV(new_ulist, 'university_rankings.csv')

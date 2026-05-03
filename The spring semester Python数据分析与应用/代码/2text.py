@@ -1,0 +1,37 @@
+from pyecharts.globals import CurrentConfig, OnlineHostType
+CurrentConfig.ONLINE_HOST = "https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/"
+
+import pandas as pd
+from pyecharts.charts import Bar
+from pyecharts.charts import Map
+from pyecharts.charts import Pie
+from pyecharts import options as opts
+import webbrowser
+import os
+import subprocess
+df_school = pd.read_csv(r'university_rankings.csv',encoding="utf-8")
+df_count = df_school.groupby("省市")  # 按“省市”分组
+df_count = df_count.size()  # 统计每组数量
+df_count = df_count.reset_index()  # 转成正常表格
+df_count.columns = ["省份", "学校数量"]  # 重命名列名
+
+pie =(Pie(init_opts=opts.InitOpts(bg_color='#0d0735')))# 设置背景色
+pie.add("",[list(z) for z in zip(df_count['省份'], df_count['学校数量'])], radius=["15%","80%"],# 内外径
+     rosetype="area"# 玫瑰图类型
+)
+pie.set_global_opts(
+            title_opts=opts.TitleOpts(
+                title='2026中国各省地区大学数量分布',
+                pos_top='1%',
+                pos_left="1%",
+                title_textstyle_opts=opts.TextStyleOpts(color='#fff200', font_size=20)
+),
+            legend_opts=opts.LegendOpts(is_show=False),
+)
+pie.set_series_opts(
+            label_opts=opts.LabelOpts(is_show=True, position="outside", formatter="{b}: {c} 所"),
+)
+pie.render()
+file_path = os.path.abspath("render.html")
+print(f"succeed!")
+os.startfile(file_path)

@@ -10,49 +10,49 @@ class MapBase(MutableMapping):
 
 class LinkedBinaryTree:
     class Node:
-        __slot__ = '_element' , '_parent' , '_left' , '_right' 
+        __slots__ = '_element' , '_parent' , '_left' , '_right' 
         def __init__(self,element,parent = None ,left = None, right = None):
             self._element = element
             self._parent = parent
             self._left = left
             self._right = right
 
-        class Position:
-            def __init__(self,container,node):
-                self._container = container
-                self._node  = node
+    class Position:
+        def __init__(self,container,node):
+            self._container = container
+            self._node  = node
 
-            def key(self):
-                return self._node._element._key
-            def value(self):
-                return self._node._element._value
-            def __eq__(self, other):
-                return type(other) is type(self) and other._node is self._node
+        def key(self):
+            return self._node._element._key
+        def value(self):
+            return self._node._element._value
+        def __eq__(self, other):
+            return type(other) is type(self) and other._node is self._node
             
-        def __init__(self):
+    def __init__(self):
             self._root = None
             self._size = 0
 
-        def _validate(self,p):
+    def _validate(self,p):
             if not isinstance(p,self.Position):
                 raise TypeError('must be a position')
             if p._node._parent is p._node:
                 raise ValueError("position is no longer valid")
             return p._node
-        def _make_position(self,node):
+    def _make_position(self,node):
             return self.Position(self,node) if node is not None else None
-        def root(self):
+    def root(self):
             return self._make_position(self._root)
-        def left(self,p):
+    def left(self,p):
             node = self._validate(p)
             return self._make_position(node._left)
-        def right(self,p):
+    def right(self,p):
             node = self._validate(p)
             return self._make_position(node._right)
-        def parent(self,p):
+    def parent(self,p):
             node = self._validate(p)
             return self._make_position(node._parent)
-        def num_children(self,p):
+    def num_children(self,p):
             node = self._validate(p)
             count = 0
             if node._left is not None:
@@ -60,34 +60,34 @@ class LinkedBinaryTree:
             if node._right is not None:
                 count += 1
             return count
-        def _add_root(self,e):
+    def _add_root(self,e):
             if self._root is not None:
                 raise ValueError("root exists")
             self._root = self.Node(e)
             self._size = 1
             return self._make_position(self._root)
-        def _add_right(self,p,e):
+    def _add_right(self,p,e):
             node = self._validate(p)
             if node._right is not None:
                 raise ValueError("right child exists")
             node._right = self.Node(e,node)
             self._size += 1
             return self._make_position(node._right)
-        def _add_left(self,p,e):
+    def _add_left(self,p,e):
             node = self._validate(p)
             if node._left is not None:
                 raise ValueError("left child exists")
             node._left = self.Node(e,node)
             self._size += 1
             return self._make_position(node._left)
-        def _replace(self,p,e):
+    def _replace(self,p,e):
             node = self._validate(p)
             old = node._element
             node._element = e
             return old
         
-        def _delete(self,p):
-            node = self._validare(p)
+    def _delete(self,p):
+            node = self._validate(p)
             if self.num_children(p) == 2:
                 raise ValueError("two children can not delete")
             child = node._left if node._left else node._right
@@ -108,19 +108,23 @@ class LinkedBinaryTree:
 class TreeMap(LinkedBinaryTree,MapBase):
 
     def __init__(self):
-        LinkedBinaryTree.__init__(self)
-        MapBase.__init__(self)
+        super().__init__()
 
     def _subtree_search(self,p,k):
+        if p is None:
+             return None
         if p.key() == k:
             return p
         elif k < p.key():
             if self.left(p) is not None:
                 return self._subtree_search(self.left(p),k)
+            else:
+                return p
         else:
             if self.right(p) is not None:
                 return self._subtree_search(self.right(p),k)
-            return p
+            else:
+                return p
         
     def _subtree_first_position(self,p):
         walk = p
@@ -193,14 +197,14 @@ if __name__ == '__main__':
     bst = TreeMap()
 
     # 插入
-    bst[5] = "A"
-    bst[3] = "B"
-    bst[7] = "C"
-    bst[2] = "D"
-    bst[4] = "E"
-    bst[6] = "F"
-    bst[8] = "G"
-
+    bst[1] = 30
+    bst[3] = 40
+    bst[6] = 24
+    bst[2] = 58
+    bst[4] = 48
+    bst[5] = 26
+    bst[7] = 11
+    bst[8] = 13
     print("中序遍历（有序）：", list(bst))
     print("查找 key=4:", bst[4])
     print("树大小：", len(bst))

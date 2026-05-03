@@ -1,0 +1,32 @@
+import pandas as pd
+from pyecharts.charts import Bar
+from pyecharts.charts import Map
+from pyecharts.charts import Pie
+from pyecharts import options as opts
+import webbrowser
+import os
+import subprocess
+df_school = pd.read_csv('university_rankings.csv',encoding="utf-8")
+df_top20 = df_school[:20]
+df_top20 = df_top20.sort_values(by='总分', ascending=True)
+# 定义绘制柱状图的函数
+
+
+bar = Bar(init_opts=opts.InitOpts(theme='dark', bg_color='#0d0735'))# 设置背景颜色为深蓝色
+bar.add_xaxis(df_top20['中文名'].tolist())# 将中文名作为横坐标
+bar.add_yaxis('', df_top20['总分'].tolist())# 分数作为纵坐标
+bar.reversal_axis()# 交换 x 和 y 轴
+bar.set_global_opts(
+            title_opts=opts.TitleOpts(
+                title='2026中国大学综合排名TOP20',
+                pos_top='1%',
+                pos_left="1%",
+                title_textstyle_opts=opts.TextStyleOpts(color='#FFFFFF')# 设置标题字体颜色为白色
+),
+            visualmap_opts=opts.VisualMapOpts(is_show=False),
+            xaxis_opts=opts.AxisOpts(axislabel_opts=opts.LabelOpts(color='#FFFFFF')),# 设置x轴标签颜色为白色
+            yaxis_opts=opts.AxisOpts(axislabel_opts=opts.LabelOpts(color='#FFFFFF'))# 设置y轴标签颜色为白色
+)
+bar.render()
+file_path = os.path.abspath("render.html")
+subprocess.run(['open', file_path])  #用默认浏览器打开图
