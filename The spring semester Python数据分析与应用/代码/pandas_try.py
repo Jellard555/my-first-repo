@@ -21,4 +21,4 @@ dl = {'城市': ['北京', '上海','广州','深圳','沈阳'],
 d = pd.DataFrame(dl,index = ['c1', 'c2', 'c3', 'c4', 'c5'])
 d = d.reindex(index=['c5', 'c4', 'c3', 'c2', 'c1'])
 d = d.reindex(columns=['城市','定基','环比','同比'])
-print(d-100)
+print(d)
