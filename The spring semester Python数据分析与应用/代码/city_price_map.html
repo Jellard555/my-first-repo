@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国城市房价分析地图</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts-gl@2/dist/echarts-gl.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', '微软雅黑', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        .content {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            height: calc(100vh - 200px);
+            min-height: 700px;
+        }
+        #mapContainer {
+            flex: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .info-panel {
+            width: 300px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            max-height: 100%;
+        }
+        .info-panel h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .city-item {
+            background: white;
+            margin-bottom: 12px;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .city-item:hover {
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+            transform: translateX(5px);
+            background: #f0f4ff;
+        }
+        .city-item.active {
+            background: #e8f0ff;
+            border-left-color: #e74c3c;
+        }
+        .city-item h3 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #667eea;
+        }
+        .info-value {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .instructions {
+            background: #e8f4f8;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            line-height: 1.6;
+        }
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px 50px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+        .loading p {
+            color: #667eea;
+            font-weight: bold;
+            margin: 0;
+        }
+        @media (max-width: 1024px) {
+            .content {
+                flex-direction: column;
+                height: auto;
+            }
+            .info-panel {
+                width: 100%;
+                max-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗺️ 中国城市房价分析</h1>
+            <p>高精度地图展示房价数据 - 将鼠标悬停在城市上查看详细信息</p>
+        </div>
+        
+        <div class="content">
+            <div id="mapContainer"></div>
+            <div class="info-panel">
+                <div class="instructions">
+                    <strong>💡 使用说明：</strong><br>
+                    • 将鼠标悬停在地图上的城市标记处<br>
+                    • 查看该城市的房价指数数据<br>
+                    • 环比：与上月相比<br>
+                    • 同比：与去年同月相比<br>
+                    • 定基：以基期为100的指数
+                </div>
+                <h2>城市列表</h2>
+                <div id="cityList"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="loading" class="loading" style="display:none;">
+        <p>⏳ 正在加载地图数据...</p>
+    </div>
+
+    <script>
+        // 显示加载状态
+        document.getElementById('loading').style.display = 'block';
+
+        // 城市数据
+        const citiesData = [
+            {
+                name: '北京',
+                coord: [116.4074, 39.9042],
+                hb: 101.5,
+                tb: 120.7,
+                dj: 121.4
+            },
+            {
+                name: '上海',
+                coord: [121.4737, 31.2304],
+                hb: 101.2,
+                tb: 127.3,
+                dj: 127.8
+            },
+            {
+                name: '广州',
+                coord: [113.2644, 23.1291],
+                hb: 101.3,
+                tb: 119.4,
+                dj: 120.0
+            },
+            {
+                name: '深圳',
+                coord: [114.0579, 22.5431],
+                hb: 102.0,
+                tb: 140.9,
+                dj: 145.5
+            },
+            {
+                name: '沈阳',
+                coord: [123.4328, 41.8045],
+                hb: 100.1,
+                tb: 101.4,
+                dj: 101.6
+            }
+        ];
+
+        // 初始化ECharts
+        const myChart = echarts.init(document.getElementById('mapContainer'));
+
+        // 准备地图数据
+        const scatterData = citiesData.map(city => [
+            city.coord[0],
+            city.coord[1],
+            city.dj
+        ]);
+
+        // 地图配置
+        const option = {
+            geo: {
+                map: 'china',
+                roam: true,
+                zoom: 1.2,
+                label: {
+                    emphasis: { show: false }
+                },
+                itemStyle: {
+                    normal: {
+                        areaColor: '#f3f3f3',
+                        borderColor: '#999',
+                        borderWidth: 0.5
+                    },
+                    emphasis: {
+                        areaColor: '#ffd700'
+                    }
+                }
+            },
+            series: [
+                {
+                    name: '房价指数',
+                    type: 'scatter',
+                    coordinateSystem: 'geo',
+                    data: scatterData,
+                    symbolSize: function(val) {
+                        return Math.max(12, val[2] / 25);
+                    },
+                    itemStyle: {
+                        color: '#ff5733',
+                        borderColor: '#fff',
+                        borderWidth: 2,
+                        shadowColor: 'rgba(0, 0, 0, 0.3)',
+                        shadowBlur: 8
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            color: '#e74c3c',
+                            borderColor: '#fff',
+                            borderWidth: 3
+                        }
+                    }
+                }
+            ],
+            tooltip: {
+                trigger: 'item',
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                borderColor: '#667eea',
+                textStyle: {
+                    color: '#333'
+                },
+                formatter: function(params) {
+                    if (params.componentSubType === 'scatter') {
+                        const cityName = citiesData.find(c => 
+                            c.coord[0] === params.value[0] && 
+                            c.coord[1] === params.value[1]
+                        );
+                        if (cityName) {
+                            return `<div style="padding: 10px;">
+                                <strong>${cityName.name}</strong><br/>
+                                <span style="color: #667eea;">环比：</span>${cityName.hb.toFixed(1)}%<br/>
+                                <span style="color: #667eea;">同比：</span>${cityName.tb.toFixed(1)}%<br/>
+                                <span style="color: #667eea;">定基：</span>${cityName.dj.toFixed(1)}
+                            </div>`;
+                        }
+                    }
+                    return params.name;
+                }
+            }
+        };
+
+        // 加载地图函数
+        async function loadMap() {
+            try {
+                // 优先使用阿里云DataV（国内CDN，更稳定）
+                const urls = [
+                    'https://geo.datav.aliyun.com/areas_v3/bound/100000.json',
+                    'https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/json/china.json',
+                ];
+
+                let mapData = null;
+
+                for (const url of urls) {
+                    try {
+                        console.log('正在加载地图:', url);
+                        const response = await fetch(url);
+                        if (response.ok) {
+                            mapData = await response.json();
+                            console.log('✓ 地图加载成功');
+                            break;
+                        }
+                    } catch (error) {
+                        console.warn('✗ 地图源加载失败:', url);
+                    }
+                }
+
+                if (mapData) {
+                    echarts.registerMap('china', mapData);
+                }
+                myChart.setOption(option);
+                document.getElementById('loading').style.display = 'none';
+            } catch (error) {
+                console.error('地图加载异常:', error);
+                document.getElementById('loading').innerHTML = '<p>⚠️ 地图加载失败</p>';
+            }
+        }
+
+        // 加载地图
+        loadMap();
+
+        // 响应式处理
+        window.addEventListener('resize', () => {
+            myChart.resize();
+        });
+
+        // 城市列表点击事件
+        let currentHoveredCity = null;
+
+        myChart.on('mouseover', function(params) {
+            if (params.componentSubType === 'scatter') {
+                const city = citiesData.find(c => 
+                    c.coord[0] === params.value[0] && 
+                    c.coord[1] === params.value[1]
+                );
+                if (city) {
+                    currentHoveredCity = city;
+                    updateCityListUI();
+                }
+            }
+        });
+
+        myChart.on('mouseout', function() {
+            currentHoveredCity = null;
+            updateCityListUI();
+        });
+
+        // 更新城市列表UI
+        function updateCityListUI() {
+            document.querySelectorAll('.city-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            if (currentHoveredCity) {
+                const activeItem = document.querySelector(`[data-city="${currentHoveredCity.name}"]`);
+                if (activeItem) activeItem.classList.add('active');
+            }
+        }
+
+        // 生成城市列表
+        function generateCityList() {
+            const listContainer = document.getElementById('cityList');
+            citiesData.forEach(city => {
+                const div = document.createElement('div');
+                div.className = 'city-item';
+                div.setAttribute('data-city', city.name);
+                div.innerHTML = `
+                    <h3>${city.name}</h3>
+                    <div class="info-row">
+                        <span class="info-label">环比：</span>
+                        <span class="info-value">${city.hb.toFixed(1)}%</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">同比：</span>
+                        <span class="info-value">${city.tb.toFixed(1)}%</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">定基：</span>
+                        <span class="info-value">${city.dj.toFixed(1)}</span>
+                    </div>
+                `;
+                
+                div.addEventListener('mouseenter', () => {
+                    currentHoveredCity = city;
+                    updateCityListUI();
+                });
+                
+                div.addEventListener('mouseleave', () => {
+                    currentHoveredCity = null;
+                    updateCityListUI();
+                });
+                
+                listContainer.appendChild(div);
+            });
+        }
+
+        generateCityList();
+    </script>

@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国城市房价深度分析系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Arial', '微软雅黑', sans-serif;
+            background: #f0f2f5;
+            color: #333;
+        }
+        
+        .container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 0.95em;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: flex;
+            flex: 1;
+            gap: 15px;
+            padding: 15px;
+            overflow: hidden;
+        }
+        
+        .chart-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            flex: 1;
+        }
+        
+        .chart-box {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chart-title {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .chart-content {
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        #mapContainer {
+            width: 600px;
+            height: 600px;
+        }
+        
+        #trendChart {
+            width: 100%;
+            height: 250px;
+        }
+        
+        #comparisonChart {
+            width: 100%;
+            height: 250px;
+        }
+        
+        .side-panel {
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .panel-box {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .panel-title {
+            font-size: 1.15em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .city-item {
+            background: #f8f9fa;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .city-item:hover {
+            background: #e8f0ff;
+            transform: translateX(5px);
+            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.2);
+        }
+        
+        .city-item.active {
+            background: #e8f0ff;
+            border-left-color: #e74c3c;
+        }
+        
+        .city-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .city-price {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        /* 距离计算面板 */
+        .distance-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #e8e8e8;
+        }
+        
+        .distance-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+        
+        .city-selector {
+            margin-bottom: 10px;
+        }
+        
+        .city-selector label {
+            display: block;
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        
+        .city-selector select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9em;
+            cursor: pointer;
+            background: white;
+        }
+        
+        .city-selector select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 4px rgba(102, 126, 234, 0.3);
+        }
+        
+        .distance-result {
+            background: #f0f4ff;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .distance-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #e74c3c;
+            text-align: center;
+            margin: 8px 0;
+        }
+        
+        .distance-unit {
+            font-size: 0.9em;
+            color: #666;
+            text-align: center;
+        }
+        
+        .instructions {
+            background: #fff8e1;
+            border-left: 4px solid #ff9800;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 40px 60px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            text-align: center;
+        }
+        
+        .loading p {
+            color: #667eea;
+            font-weight: bold;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 1400px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .side-panel {
+                width: 100%;
+                flex-direction: row;
+            }
+            
+            #mapContainer {
+                width: 100%;
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗺️ 中国城市房价深度分析系统</h1>
+            <p>多维度展示5大城市房价数据 | 实时距离计算 | 趋势分析</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- 左侧：地图和柱状图 -->
+            <div class="chart-section">
+                <!-- 地图 -->
+                <div class="chart-box">
+                    <div class="chart-title">📍 中国城市地图 (固定视图)</div>
+                    <div class="chart-content" id="mapContainer"></div>
+                </div>
+                
+                <!-- 柱状图 - 城市对比 -->
+                <div class="chart-box">
+                    <div class="chart-title">📊 城市房价指数对比 (2025年)</div>
+                    <div class="chart-content" id="comparisonChart"></div>
+                </div>
+            </div>
+            
+            <!-- 右侧：折线图和控制面板 -->
+            <div class="side-panel">
+                <!-- 折线图 - 房价趋势 -->
+                <div class="chart-box">
+                    <div class="chart-title">📈 房价趋势分析 (2020-2025)</div>
+                    <div class="chart-content" id="trendChart"></div>
+                </div>
+                
+                <!-- 控制和信息面板 -->
+                <div class="panel-box">
+                    <div class="instructions">
+                        <strong>💡 使用说明：</strong><br>
+                        • 地图显示5大城市及各省省会标注<br>
+                        • 下方可选择两个城市计算距离<br>
+                        • 悬停图表可查看具体数据
+                    </div>
+                    
+                    <div class="panel-title">🏙️ 监测城市</div>
+                    <div id="cityList"></div>
+                    
+                    <div class="distance-section">
+                        <div class="distance-label">📏 城市距离计算</div>
+                        
+                        <div class="city-selector">
+                            <label>起始城市：</label>
+                            <select id="city1Select">
+                                <option value="">-- 请选择 --</option>
+                            </select>
+                        </div>
+                        
+                        <div class="city-selector">
+                            <label>目标城市：</label>
+                            <select id="city2Select">
+                                <option value="">-- 请选择 --</option>
+                            </select>
+                        </div>
+                        
+                        <div class="distance-result" id="distanceResult" style="display: none;">
+                            <div class="distance-unit">距离</div>
+                            <div class="distance-value" id="distanceValue">0</div>
+                            <div class="distance-unit">公里</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="loading" class="loading" style="display:none;">
+        <div class="loading-spinner"></div>
+        <p>⏳ 正在加载数据和地图...</p>
+    </div>
+
+    <script>
+        // ==================== 数据 ====================
+        
+        // 房价数据：2020-2025年的月度数据（环比、同比、定基）
+        const priceData = {
+            '北京': {
+                coord: [116.4074, 39.9042],
+                province: '北京',
+                years: {
+                    2020: [100.5, 100.8, 101.2, 100.9, 101.1, 101.3, 101.5, 101.7, 101.9, 102.1, 102.3, 102.5],
+                    2021: [102.8, 103.0, 103.3, 103.5, 103.8, 104.0, 104.3, 104.5, 104.8, 105.0, 105.3, 105.5],
+                    2022: [105.8, 106.0, 105.9, 105.7, 105.5, 105.3, 105.2, 105.0, 104.9, 104.8, 104.7, 104.6],
+                    2023: [104.5, 104.8, 105.0, 105.3, 105.6, 105.9, 106.2, 106.5, 106.8, 107.1, 107.4, 107.7],
+                    2024: [108.0, 108.5, 109.0, 109.5, 110.0, 110.5, 111.0, 111.5, 112.0, 112.5, 113.0, 113.5],
+                    2025: [114.0, 114.5, 115.0, 115.5, 116.0, 116.5, 117.0, 117.5, 118.0, 118.5, 119.0, 119.5]
+                }
+            },
+            '上海': {
+                coord: [121.4737, 31.2304],
+                province: '上海',
+                years: {
+                    2020: [100.8, 101.1, 101.4, 101.6, 101.9, 102.2, 102.5, 102.8, 103.1, 103.4, 103.7, 104.0],
+                    2021: [104.3, 104.6, 104.9, 105.2, 105.5, 105.8, 106.1, 106.4, 106.7, 107.0, 107.3, 107.6],
+                    2022: [107.9, 108.1, 108.0, 107.9, 107.8, 107.7, 107.6, 107.5, 107.4, 107.3, 107.2, 107.1],
+                    2023: [107.0, 107.4, 107.8, 108.2, 108.6, 109.0, 109.4, 109.8, 110.2, 110.6, 111.0, 111.4],
+                    2024: [111.8, 112.4, 113.0, 113.6, 114.2, 114.8, 115.4, 116.0, 116.6, 117.2, 117.8, 118.4],
+                    2025: [119.0, 119.6, 120.2, 120.8, 121.4, 122.0, 122.6, 123.2, 123.8, 124.4, 125.0, 125.6]
+                }
+            },
+            '广州': {
+                coord: [113.2644, 23.1291],
+                province: '广东',
+                years: {
+                    2020: [100.6, 100.9, 101.2, 101.4, 101.7, 102.0, 102.3, 102.6, 102.9, 103.2, 103.5, 103.8],
+                    2021: [104.1, 104.4, 104.7, 105.0, 105.3, 105.6, 105.9, 106.2, 106.5, 106.8, 107.1, 107.4],
+                    2022: [107.7, 107.9, 107.8, 107.7, 107.6, 107.5, 107.4, 107.3, 107.2, 107.1, 107.0, 106.9],
+                    2023: [106.8, 107.2, 107.6, 108.0, 108.4, 108.8, 109.2, 109.6, 110.0, 110.4, 110.8, 111.2],
+                    2024: [111.6, 112.2, 112.8, 113.4, 114.0, 114.6, 115.2, 115.8, 116.4, 117.0, 117.6, 118.2],
+                    2025: [118.8, 119.4, 120.0, 120.6, 121.2, 121.8, 122.4, 123.0, 123.6, 124.2, 124.8, 125.4]
+                }
+            },
+            '深圳': {
+                coord: [114.0579, 22.5431],
+                province: '广东',
+                years: {
+                    2020: [100.9, 101.3, 101.7, 102.0, 102.4, 102.8, 103.2, 103.6, 104.0, 104.4, 104.8, 105.2],
+                    2021: [105.6, 106.1, 106.6, 107.0, 107.5, 108.0, 108.5, 109.0, 109.5, 110.0, 110.5, 111.0],
+                    2022: [111.5, 111.8, 111.5, 111.2, 110.9, 110.6, 110.3, 110.0, 109.7, 109.4, 109.1, 108.8],
+                    2023: [108.5, 109.2, 109.9, 110.6, 111.3, 112.0, 112.7, 113.4, 114.1, 114.8, 115.5, 116.2],
+                    2024: [116.9, 117.8, 118.7, 119.6, 120.5, 121.4, 122.3, 123.2, 124.1, 125.0, 125.9, 126.8],
+                    2025: [127.7, 128.8, 129.9, 131.0, 132.1, 133.2, 134.3, 135.4, 136.5, 137.6, 138.7, 139.8]
+                }
+            },
+            '沈阳': {
+                coord: [123.4328, 41.8045],
+                province: '辽宁',
+                years: {
+                    2020: [100.1, 100.2, 100.3, 100.4, 100.5, 100.6, 100.7, 100.8, 100.9, 101.0, 101.1, 101.2],
+                    2021: [101.3, 101.5, 101.7, 101.9, 102.1, 102.3, 102.5, 102.7, 102.9, 103.1, 103.3, 103.5],
+                    2022: [103.7, 103.8, 103.7, 103.6, 103.5, 103.4, 103.3, 103.2, 103.1, 103.0, 102.9, 102.8],
+                    2023: [102.7, 102.9, 103.1, 103.3, 103.5, 103.7, 103.9, 104.1, 104.3, 104.5, 104.7, 104.9],
+                    2024: [105.1, 105.4, 105.7, 106.0, 106.3, 106.6, 106.9, 107.2, 107.5, 107.8, 108.1, 108.4],
+                    2025: [108.7, 109.0, 109.3, 109.6, 109.9, 110.2, 110.5, 110.8, 111.1, 111.4, 111.7, 112.0]
+                }
+            }
+        };
+
+        // 中国各省省会城市（用于地图标注）
+        const capitalCities = [
+            { name: '哈尔滨', coord: [126.5350, 45.8038], province: '黑龙江' },
+            { name: '长春', coord: [125.3245, 44.0065], province: '吉林' },
+            { name: '沈阳', coord: [123.4328, 41.8045], province: '辽宁' },
+            { name: '石家庄', coord: [114.5149, 38.0428], province: '河北' },
+            { name: '太原', coord: [112.5489, 37.8706], province: '山西' },
+            { name: '呼和浩特', coord: [111.7584, 40.8182], province: '内蒙古' },
+            { name: '北京', coord: [116.4074, 39.9042], province: '北京' },
+            { name: '天津', coord: [117.2010, 39.0842], province: '天津' },
+            { name: '郑州', coord: [113.6254, 34.7466], province: '河南' },
+            { name: '西安', coord: [108.9398, 34.3416], province: '陕西' },
+            { name: '兰州', coord: [103.8343, 36.0611], province: '甘肃' },
+            { name: '银川', coord: [106.2586, 38.4680], province: '宁夏' },
+            { name: '西宁', coord: [101.7782, 36.6171], province: '青海' },
+            { name: '乌鲁木齐', coord: [87.6278, 43.7929], province: '新疆' },
+            { name: '拉萨', coord: [91.1865, 29.6470], province: '西藏' },
+            { name: '成都', coord: [104.0659, 30.5728], province: '四川' },
+            { name: '重庆', coord: [106.5516, 29.5630], province: '重庆' },
+            { name: '贵阳', coord: [106.7135, 26.5783], province: '贵州' },
+            { name: '云南', coord: [102.8329, 24.8801], province: '云南' },
+            { name: '南宁', coord: [108.3366, 22.8170], province: '广西' },
+            { name: '广州', coord: [113.2644, 23.1291], province: '广东' },
+            { name: '深圳', coord: [114.0579, 22.5431], province: '广东' },
+            { name: '南昌', coord: [115.8581, 28.6832], province: '江西' },
+            { name: '杭州', coord: [120.1551, 30.2741], province: '浙江' },
+            { name: '上海', coord: [121.4737, 31.2304], province: '上海' },
+            { name: '南京', coord: [118.7969, 32.0603], province: '江苏' },
+            { name: '合肥', coord: [117.2272, 31.8604], province: '安徽' },
+            { name: '武汉', coord: [114.3055, 30.5928], province: '湖北' },
+            { name: '长沙', coord: [112.9388, 28.2282], province: '湖南' },
+            { name: '福州', coord: [119.2965, 26.0745], province: '福建' }
+        ];
+
+        // ==================== ECharts 初始化 ====================
+        
+        const mapChart = echarts.init(document.getElementById('mapContainer'));
+        const trendChart = echarts.init(document.getElementById('trendChart'));
+        const comparisonChart = echarts.init(document.getElementById('comparisonChart'));
+
+        // ==================== 地图配置 ====================
+        
+        async function initMap() {
+            try {
+                // 加载地图数据
+                const mapResponse = await fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000.json');
+                const chinaGeoJson = await mapResponse.json();
+                echarts.registerMap('china', chinaGeoJson);
+
+                // 准备地图数据
+                const mainCities = Object.entries(priceData).map(([name, data]) => ({
+                    name: name,
+                    value: [...data.coord, data.years[2025][11]] // 2025年12月的定基值
+                }));
+
+                const capitalCitiesData = capitalCities.map(city => ({
+                    name: city.name,
+                    value: [...city.coord, 100]
+                }));
+
+                const mapOption = {
+                    title: {
+                        text: '中国城市房价分布',
+                        left: 'center',
+                        top: '95%',
+                        textStyle: { color: '#999', fontSize: 12 }
+                    },
+                    geo: {
+                        map: 'china',
+                        roam: false,  // 禁用缩放和拖拽
+                        zoom: 1.2,
+                        label: {
+                            emphasis: { show: false }
+                        },
+                        itemStyle: {
+                            normal: {
+                                areaColor: '#f3f3f3',
+                                borderColor: '#999',
+                                borderWidth: 0.5
+                            },
+                            emphasis: {
+                                areaColor: '#e8e8e8'
+                            }
+                        }
+                    },
+                    series: [
+                        {
+                            name: '监测城市',
+                            type: 'scatter',
+                            coordinateSystem: 'geo',
+                            data: mainCities,
+                            symbolSize: function(val) {
+                                return Math.max(15, Math.min(30, val[2] / 20));
+                            },
+                            itemStyle: {
+                                color: '#e74c3c',
+                                borderColor: '#fff',
+                                borderWidth: 2,
+                                shadowColor: 'rgba(0, 0, 0, 0.5)',
+                                shadowBlur: 10
+                            },
+                            label: {
+                                normal: {
+                                    show: true,
+                                    formatter: '{b}',
+                                    position: 'bottom',
+                                    color: '#333',
+                                    fontSize: 10
+                                }
+                            }
+                        },
+                        {
+                            name: '省会城市',
+                            type: 'scatter',
+                            coordinateSystem: 'geo',
+                            data: capitalCitiesData,
+                            symbolSize: 4,
+                            itemStyle: {
+                                color: '#667eea',
+                                borderColor: '#fff',
+                                borderWidth: 1
+                            },
+                            label: {
+                                normal: {
+                                    show: false
+                                }
+                            }
+                        }
+                    ],
+                    tooltip: {
+                        trigger: 'item',
+                        backgroundColor: 'rgba(255,255,255,0.95)',
+                        borderColor: '#667eea',
+                        textStyle: { color: '#333' },
+                        formatter: function(params) {
+                            if (params.seriesType === 'scatter') {
+                                const cityName = params.data.name;
+                                const cityData = priceData[cityName];
+                                if (cityData) {
+                                    const latestYear = cityData.years[2025];
+                                    return `<strong>${cityName}</strong><br/>
+                                        2025年定基：${latestYear[11].toFixed(1)}<br/>
+                                        所属：${cityData.province}`;
+                                }
+                                return cityName;
+                            }
+                            return params.name;
+                        }
+                    }
+                };
+
+                mapChart.setOption(mapOption);
+                window.addEventListener('resize', () => mapChart.resize());
+            } catch (error) {
+                console.error('地图加载失败:', error);
+            }
+        }
+
+        // ==================== 折线图配置 ====================
+        
+        function initTrendChart() {
+            const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+            const allMonths = [];
+            const years = [2020, 2021, 2022, 2023, 2024, 2025];
+            
+            years.forEach(year => {
+                months.forEach(month => {
+                    allMonths.push(`${year}年${month}`);
+                });
+            });
+
+            const series = [];
+            const colors = ['#e74c3c', '#f39c12', '#27ae60', '#2980b9', '#9b59b6'];
+            
+            Object.entries(priceData).forEach(([cityName, cityData], index) => {
+                const cityDataValues = [];
+                years.forEach(year => {
+                    cityDataValues.push(...cityData.years[year]);
+                });
+                
+                series.push({
+                    name: cityName,
+                    type: 'line',
+                    data: cityDataValues,
+                    smooth: true,
+                    itemStyle: { color: colors[index] },
+                    lineStyle: { color: colors[index] },
+                    areaStyle: { opacity: 0.1 }
+                });
+            });
+
+            const trendOption = {
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: 'rgba(255,255,255,0.95)',
+                    borderColor: '#667eea',
+                    textStyle: { color: '#333' }
+                },
+                legend: {
+                    top: 10,
+                    textStyle: { color: '#333', fontSize: 11 }
+                },
+                grid: {
+                    top: 40,
+                    left: 50,
+                    right: 20,
+                    bottom: 30,
+                    containLabel: false
+                },
+                xAxis: {
+                    type: 'category',
+                    data: allMonths,
+                    splitNumber: 12,
+                    axisLabel: {
+                        interval: 11,  // 每12个（一年）显示一个标签
+                        fontSize: 9,
+                        color: '#999'
+                    },
+                    axisLine: { lineStyle: { color: '#ddd' } }
+                },
+                yAxis: {
+                    type: 'value',
+                    axisLabel: { fontSize: 9, color: '#999' },
+                    splitLine: { lineStyle: { color: '#eee' } },
+                    axisLine: { lineStyle: { color: '#ddd' } }
+                },
+                series: series
+            };
+
+            trendChart.setOption(trendOption);
+            window.addEventListener('resize', () => trendChart.resize());
+        }
+
+        // ==================== 柱状图配置 ====================
+        
+        function initComparisonChart() {
+            const cities = Object.keys(priceData);
+            const latest2025 = cities.map(city => priceData[city].years[2025][11]); // 2025年12月
+            const latest2024 = cities.map(city => priceData[city].years[2024][11]); // 2024年12月
+            const latest2023 = cities.map(city => priceData[city].years[2023][11]); // 2023年12月
+
+            const comparisonOption = {
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: 'rgba(255,255,255,0.95)',
+                    borderColor: '#667eea',
+                    textStyle: { color: '#333' },
+                    axisPointer: { type: 'shadow' }
+                },
+                legend: {
+                    textStyle: { color: '#333', fontSize: 11 }
+                },
+                grid: {
+                    top: 30,
+                    left: 50,
+                    right: 20,
+                    bottom: 30,
+                    containLabel: false
+                },
+                xAxis: {
+                    type: 'category',
+                    data: cities,
+                    axisLabel: { fontSize: 10, color: '#333' },
+                    axisLine: { lineStyle: { color: '#ddd' } }
+                },
+                yAxis: {
+                    type: 'value',
+                    axisLabel: { fontSize: 9, color: '#999' },
+                    splitLine: { lineStyle: { color: '#eee' } },
+                    axisLine: { lineStyle: { color: '#ddd' } }
+                },
+                series: [
+                    {
+                        name: '2023年',
+                        type: 'bar',
+                        data: latest2023,
+                        itemStyle: { color: '#3498db' }
+                    },
+                    {
+                        name: '2024年',
+                        type: 'bar',
+                        data: latest2024,
+                        itemStyle: { color: '#f39c12' }
+                    },
+                    {
+                        name: '2025年',
+                        type: 'bar',
+                        data: latest2025,
+                        itemStyle: { color: '#e74c3c' }
+                    }
+                ]
+            };
+
+            comparisonChart.setOption(comparisonOption);
+            window.addEventListener('resize', () => comparisonChart.resize());
+        }
+
+        // ==================== 距离计算函数 ====================
+        
+        function calculateDistance(coord1, coord2) {
+            // Haversine 公式：计算两点之间的球面距离
+            const R = 6371; // 地球半径（公里）
+            const [lng1, lat1] = coord1;
+            const [lng2, lat2] = coord2;
+            
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+            
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        // ==================== UI 初始化 ====================
+        
+        function initUI() {
+            // 填充城市列表
+            const cityListContainer = document.getElementById('cityList');
+            Object.entries(priceData).forEach(([cityName, cityData]) => {
+                const latest2025 = cityData.years[2025][11];
+                const latest2024 = cityData.years[2024][11];
+                const growth = ((latest2025 - latest2024) / latest2024 * 100).toFixed(1);
+
+                const div = document.createElement('div');
+                div.className = 'city-item';
+                div.innerHTML = `
+                    <div class="city-name">${cityName}</div>
+                    <div class="city-price">
+                        2025年定基：${latest2025.toFixed(1)} 
+                        <span style="color: ${growth >= 0 ? '#e74c3c' : '#27ae60'}">(${growth > 0 ? '+' : ''}${growth}%)</span>
+                    </div>
+                `;
+                cityListContainer.appendChild(div);
+            });
+
+            // 填充城市选择器
+            const cities = Object.keys(priceData);
+            const city1Select = document.getElementById('city1Select');
+            const city2Select = document.getElementById('city2Select');
+
+            cities.forEach(city => {
+                const option1 = document.createElement('option');
+                option1.value = city;
+                option1.textContent = city;
+                city1Select.appendChild(option1);
+
+                const option2 = document.createElement('option');
+                option2.value = city;
+                option2.textContent = city;
+                city2Select.appendChild(option2);
+            });
+
+            // 距离计算事件
+            function updateDistance() {
+                const city1 = city1Select.value;
+                const city2 = city2Select.value;
+
+                if (city1 && city2 && city1 !== city2) {
+                    const distance = calculateDistance(
+                        priceData[city1].coord,
+                        priceData[city2].coord
+                    );
+
+                    document.getElementById('distanceValue').textContent = distance.toFixed(0);
+                    document.getElementById('distanceResult').style.display = 'block';
+                } else {
+                    document.getElementById('distanceResult').style.display = 'none';
+                }
+            }
+
+            city1Select.addEventListener('change', updateDistance);
+            city2Select.addEventListener('change', updateDistance);
+        }
+
+        // ==================== 初始化流程 ====================
+        
+        window.addEventListener('load', async function() {
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                await initMap();
+                initTrendChart();
+                initComparisonChart();
+                initUI();
+            } catch (error) {
+                console.error('初始化失败:', error);
+                document.getElementById('loading').innerHTML = '<p>⚠️ 加载失败，请刷新重试</p>';
+            }
+            
+            document.getElementById('loading').style.display = 'none';
+        });
+    </script>
+</body>
+</html>
